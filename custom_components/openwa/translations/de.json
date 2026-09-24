@@ -53,7 +53,7 @@
     "step": {
       "init": {
         "title": "OpenWA-Optionen",
-        "description": "Standard-Chat je Session für die Notify-Entity: Telefonnummer mit Ländervorwahl (+49 151 …) oder Chat-ID wie 49151…@c.us / …@g.us.",
+        "description": "Standard-Chat je Session für die Notify-Entity: Telefonnummer (+49 151 … oder 0151 … mit dem in Home Assistant eingestellten Land) oder Chat-ID wie 49151…@c.us / …@g.us.",
         "data": {
           "scan_interval": "Abfrageintervall (Sekunden)"
         }
@@ -68,7 +68,7 @@
       "message_received": "Nachricht empfangen"
     },
     "extra_fields": {
-      "from": "Von (Telefonnummer oder Chat-ID, optional)"
+      "from": "Von (Telefonnummer oder Chat-ID, optional; greift auch bei aufgelösten @lid-Absendern)"
     }
   },
   "entity": {
@@ -130,7 +130,7 @@
         },
         "chat_id": {
           "name": "Chat",
-          "description": "Telefonnummer mit Ländervorwahl oder Chat-ID (…@c.us, …@g.us)."
+          "description": "Telefonnummer (+49 151 … oder 0151 … mit dem in Home Assistant eingestellten Land) oder Chat-ID (…@c.us, …@g.us)."
         },
         "text": {
           "name": "Text",
@@ -152,7 +152,7 @@
         },
         "chat_id": {
           "name": "Chat",
-          "description": "Telefonnummer mit Ländervorwahl oder Chat-ID (…@c.us, …@g.us)."
+          "description": "Telefonnummer (+49 151 … oder 0151 … mit dem in Home Assistant eingestellten Land) oder Chat-ID (…@c.us, …@g.us)."
         },
         "url": {
           "name": "URL",

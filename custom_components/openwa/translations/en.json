@@ -53,7 +53,7 @@
     "step": {
       "init": {
         "title": "OpenWA options",
-        "description": "Default chat per session for the notify entity: phone number with country code (+49 151 …) or a chat id like 49151…@c.us / …@g.us.",
+        "description": "Default chat per session for the notify entity: a phone number (+49 151 …, or 0151 … using the Home Assistant country) or a chat id like 49151…@c.us / …@g.us.",
         "data": {
           "scan_interval": "Polling interval (seconds)"
         }
@@ -68,7 +68,7 @@
       "message_received": "Message received"
     },
     "extra_fields": {
-      "from": "From (phone number or chat id, optional)"
+      "from": "From (phone number or chat id, optional; also matches resolved @lid senders)"
     }
   },
   "entity": {
@@ -130,7 +130,7 @@
         },
         "chat_id": {
           "name": "Chat",
-          "description": "Phone number with country code or chat id (…@c.us, …@g.us)."
+          "description": "Phone number (+49 151 …, or 0151 … using the Home Assistant country) or chat id (…@c.us, …@g.us)."
         },
         "text": {
           "name": "Text",
@@ -152,7 +152,7 @@
         },
         "chat_id": {
           "name": "Chat",
-          "description": "Phone number with country code or chat id (…@c.us, …@g.us)."
+          "description": "Phone number (+49 151 …, or 0151 … using the Home Assistant country) or chat id (…@c.us, …@g.us)."
         },
         "url": {
           "name": "URL",

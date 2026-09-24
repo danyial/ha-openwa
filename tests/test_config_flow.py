@@ -199,3 +199,17 @@ async def test_options_reject_bad_chat(
         result["flow_id"], {SESSION_NAME: "nope", CONF_SCAN_INTERVAL: 60}
     )
     assert result["errors"] == {SESSION_NAME: "invalid_chat_id"}
+
+
+async def test_options_national_number_uses_country(
+    hass: HomeAssistant, setup_entry: MockConfigEntry
+) -> None:
+    hass.config.country = "DE"
+    result = await hass.config_entries.options.async_init(setup_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {SESSION_NAME: "0151 00000002", CONF_SCAN_INTERVAL: 60}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert setup_entry.options[CONF_DEFAULT_CHAT_IDS] == {
+        SESSION_ID: "4915100000002@c.us"
+    }

@@ -387,6 +387,7 @@ async def test_device_trigger_with_from_filter(
     setup_entry: MockConfigEntry,
     hass_client_no_auth: ClientSessionGenerator,
 ) -> None:
+    hass.config.country = "DE"
     device = dr.async_get(hass).async_get_device_by_identifier(
         (DOMAIN, SESSION_ID), setup_entry.entry_id
     )
@@ -402,7 +403,7 @@ async def test_device_trigger_with_from_filter(
                     "domain": DOMAIN,
                     "device_id": device.id,
                     "type": "message_received",
-                    "from": "+49 151 00000009",
+                    "from": "0151 00000009",
                 },
                 "actions": {"action": "test.record"},
             }
@@ -416,5 +417,76 @@ async def test_device_trigger_with_from_filter(
         hass_client_no_auth,
         _delivery("message.received", {"from": "4915199999999@c.us"}, "t2"),
     )
+    # Sender hidden behind a LID, resolved by OpenWA (RESOLVE_LID_TO_PHONE).
+    await _post(
+        hass_client_no_auth,
+        _delivery(
+            "message.received",
+            {"from": "209569389236259@lid", "senderPhone": "4915100000009"},
+            "t3",
+        ),
+    )
+    # Same LID sender without resolution cannot match a phone filter.
+    await _post(
+        hass_client_no_auth,
+        _delivery("message.received", {"from": "209569389236259@lid"}, "t4"),
+    )
     await hass.async_block_till_done()
-    assert len(calls) == 1
+    assert len(calls) == 2
+
+
+async def test_event_sender_phone(
+    hass: HomeAssistant,
+    setup_entry: MockConfigEntry,
+    hass_client_no_auth: ClientSessionGenerator,
+) -> None:
+    events = async_capture_events(hass, EVENT_OPENWA)
+    await _post(
+        hass_client_no_auth,
+        _delivery(
+            "message.received",
+            {"from": "209569389236259@lid", "senderPhone": "4915100000009"},
+            "p1",
+        ),
+    )
+    await _post(
+        hass_client_no_auth,
+        _delivery("message.received", {"from": "4915100000009@c.us"}, "p2"),
+    )
+    await hass.async_block_till_done()
+    assert events[0].data["from"] == "209569389236259@lid"
+    assert events[0].data["sender_phone"] == "4915100000009@c.us"
+    assert events[1].data["sender_phone"] is None
+
+
+async def test_service_national_number(
+    hass: HomeAssistant,
+    setup_entry: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    hass.config.country = "DE"
+    aioclient_mock.post(
+        f"{BASE}/messages/send-text",
+        status=201,
+        json={"messageId": "m", "timestamp": 1},
+    )
+    await hass.services.async_call(
+        DOMAIN,
+        "send_message",
+        {"session": SESSION_NAME, "chat_id": "0151 00000003", "text": "hi"},
+        blocking=True,
+    )
+    assert aioclient_mock.mock_calls[-1][2]["chatId"] == "4915100000003@c.us"
+
+
+async def test_service_national_number_without_country(
+    hass: HomeAssistant, setup_entry: MockConfigEntry
+) -> None:
+    hass.config.country = None
+    with pytest.raises(ServiceValidationError, match="country code"):
+        await hass.services.async_call(
+            DOMAIN,
+            "send_message",
+            {"session": SESSION_NAME, "chat_id": "0151 00000003", "text": "hi"},
+            blocking=True,
+        )

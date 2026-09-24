@@ -41,17 +41,10 @@ if TYPE_CHECKING:
     from .coordinator import OpenWASessionCoordinator
 
 
-def _chat_id(value: str) -> str:
-    try:
-        return normalize_chat_id(cv.string(value))
-    except ValueError as err:
-        raise vol.Invalid(str(err)) from err
-
-
 SEND_MESSAGE_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_SESSION): cv.string,
-        vol.Required(ATTR_CHAT_ID): _chat_id,
+        vol.Required(ATTR_CHAT_ID): cv.string,
         vol.Required(ATTR_TEXT): cv.string,
         vol.Optional(ATTR_QUOTED_MESSAGE_ID): cv.string,
     }
@@ -61,7 +54,7 @@ SEND_MEDIA_SCHEMA = vol.All(
     vol.Schema(
         {
             vol.Required(ATTR_SESSION): cv.string,
-            vol.Required(ATTR_CHAT_ID): _chat_id,
+            vol.Required(ATTR_CHAT_ID): cv.string,
             vol.Exclusive(ATTR_URL, "source"): cv.url,
             vol.Exclusive(ATTR_PATH, "source"): cv.string,
             vol.Optional(ATTR_CAPTION): cv.string,
@@ -107,6 +100,14 @@ def _raise(err: OpenWAError) -> None:
     raise HomeAssistantError(f"Sending failed: {err}") from err
 
 
+def _chat_id(hass: HomeAssistant, call: ServiceCall) -> str:
+    """Normalize chat_id; national numbers use the HA country setting."""
+    try:
+        return normalize_chat_id(call.data[ATTR_CHAT_ID], hass.config.country)
+    except ValueError as err:
+        raise ServiceValidationError(str(err)) from err
+
+
 def _read_file(path: Path) -> bytes:
     if not path.is_file():
         raise ServiceValidationError(f"{path} does not exist")
@@ -123,10 +124,11 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def send_message(call: ServiceCall) -> ServiceResponse:
         coordinator = _find_session(hass, call.data[ATTR_SESSION])
+        chat_id = _chat_id(hass, call)
         try:
             result = await coordinator.client.send_text(
                 coordinator.session_id,
-                call.data[ATTR_CHAT_ID],
+                chat_id,
                 call.data[ATTR_TEXT],
                 call.data.get(ATTR_QUOTED_MESSAGE_ID),
             )
@@ -136,6 +138,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def send_media(call: ServiceCall) -> ServiceResponse:
         coordinator = _find_session(hass, call.data[ATTR_SESSION])
+        chat_id = _chat_id(hass, call)
         url: str | None = call.data.get(ATTR_URL)
         filename: str | None = call.data.get(ATTR_FILENAME)
         payload: str | None = None
@@ -159,7 +162,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
             result = await coordinator.client.send_media(
                 coordinator.session_id,
                 kind,
-                call.data[ATTR_CHAT_ID],
+                chat_id,
                 url=url,
                 base64=payload,
                 mimetype=mimetype if payload else None,
