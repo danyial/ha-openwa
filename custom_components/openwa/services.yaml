@@ -1,0 +1,57 @@
+send_message:
+  fields:
+    session:
+      required: true
+      example: home-assistant
+      selector:
+        text:
+    chat_id:
+      required: true
+      example: "4915112345678@c.us"
+      selector:
+        text:
+    text:
+      required: true
+      selector:
+        text:
+          multiline: true
+    quoted_message_id:
+      selector:
+        text:
+
+send_media:
+  fields:
+    session:
+      required: true
+      example: home-assistant
+      selector:
+        text:
+    chat_id:
+      required: true
+      example: "4915112345678@c.us"
+      selector:
+        text:
+    url:
+      example: "https://example.com/picture.jpg"
+      selector:
+        text:
+          type: url
+    path:
+      example: "/config/www/snapshot.jpg"
+      selector:
+        text:
+    caption:
+      selector:
+        text:
+    kind:
+      selector:
+        select:
+          translation_key: kind
+          options:
+            - image
+            - video
+            - audio
+            - document
+    filename:
+      selector:
+        text:
