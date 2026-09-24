@@ -1,7 +1,7 @@
 {
   "domain": "openwa",
   "name": "OpenWA",
-  "codeowners": ["@root"],
+  "codeowners": ["@danyial"],
   "config_flow": true,
   "dependencies": ["webhook"],
   "documentation": "https://github.com/danyial/ha-openwa",

@@ -90,7 +90,7 @@ Every delivery fires `openwa_event` on the event bus:
 
 ```yaml
 event_type: message.received     # OpenWA event name
-session_id: 0b6f…           # session UUID
+session_id: 0b6f…              # session UUID
 session_name: home-assistant
 device_id: …
 from: "4915112345678@c.us"       # message.* events only
