@@ -128,3 +128,24 @@ uv venv -p 3.14 .venv && uv pip install -p .venv -r requirements_test.txt
 For checks against a real OpenWA instance, copy `.env.example` to `.env` (git-ignored) and fill in the URL, key and session id.
 
 CI (GitLab) runs ruff, pytest, hassfest and an offline HACS structure check (`scripts/check_hacs.py`). `hacs/action` needs GitHub and cannot run here.
+
+## Releasing
+
+Development happens in a GitLab repository; GitHub is a push mirror of `main` and of protected `v*` tags. HACS reads releases from GitHub.
+
+1. Bump `version` in `custom_components/openwa/manifest.json` (e.g. `0.2.0`), merge to `main`, wait for a green pipeline.
+2. Create the tag and release on GitLab from `main`:
+   ```sh
+   glab release create v0.2.0 --ref main --name v0.2.0 --notes-file notes.md
+   ```
+   The tag must match the manifest version with a `v` prefix.
+3. Wait until the mirror has pushed the tag (usually seconds):
+   ```sh
+   gh api repos/danyial/ha-openwa/git/refs/tags/v0.2.0
+   ```
+4. Publish the same notes on GitHub; this is what HACS offers as an update:
+   ```sh
+   gh release create v0.2.0 --repo danyial/ha-openwa --verify-tag --title v0.2.0 --notes-file notes.md
+   ```
+
+Commits made through the GitLab web UI (including merge commits) carry the author's GitLab commit email and are mirrored to the public GitHub repository.
