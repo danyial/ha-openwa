@@ -54,7 +54,7 @@ Removing the integration deletes its webhooks in OpenWA.
 
 ## Sending
 
-Chat IDs: `4915112345678@c.us` for a person, `<id>@g.us` for a group. A phone number such as `+49 151 1234 5678` is converted to the `@c.us` form.
+Chat IDs: `4915112345678@c.us` for a person, `<id>@g.us` for a group. Phone numbers are converted to the `@c.us` form: `+49 151 1234 5678` and `0049 151 …` as international numbers, `0151 1234 5678` using the country set in Home Assistant (*Settings → System → General*). A national number without a configured country is rejected.
 
 ```yaml
 action: notify.send_message
@@ -93,22 +93,32 @@ event_type: message.received     # OpenWA event name
 session_id: 0b6f…              # session UUID
 session_name: home-assistant
 device_id: …
-from: "4915112345678@c.us"       # message.* events only
+from: "4915112345678@c.us"       # message.* events only; may be "…@lid", see below
+sender_phone: "4915112345678@c.us"  # message.* events, resolved number of an @lid sender, else null
 timestamp: "2026-09-24T10:00:00.000Z"
 data: { … }                      # OpenWA payload: id, from, to, body, type, isGroup, kind, contact, media, …
 ```
 
 Subscribed events: `message.received`, `message.ack`, `session.status`, `session.qr`, `session.authenticated`, `session.disconnected`.
 
-For automations built in the UI there is a device trigger **Message received** with an optional sender filter.
+WhatsApp increasingly hides senders behind a *linked ID*: `from` is then `…@lid` instead of the phone number. OpenWA resolves it only when the server runs with `RESOLVE_LID_TO_PHONE=true`; the number then arrives as `sender_phone`. To match a specific person, check both fields, as in the example below.
+
+For automations built in the UI there is a device trigger **Message received** with an optional sender filter. It matches `from` or `sender_phone`, so resolved `@lid` senders are found by their phone number.
 
 ```yaml
 triggers:
+  # A sender arrives either with its number in `from`, or as a LID with the
+  # resolved number in `sender_phone`. Listen for both.
   - trigger: event
     event_type: openwa_event
     event_data:
       event_type: message.received
       from: "4915112345678@c.us"
+  - trigger: event
+    event_type: openwa_event
+    event_data:
+      event_type: message.received
+      sender_phone: "4915112345678@c.us"
 actions:
   - action: persistent_notification.create
     data:

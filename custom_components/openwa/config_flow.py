@@ -260,7 +260,7 @@ class OpenWAOptionsFlow(OptionsFlow):
                 if not raw:
                     continue
                 try:
-                    chats[sid] = normalize_chat_id(raw)
+                    chats[sid] = normalize_chat_id(raw, self.hass.config.country)
                 except ValueError:
                     errors[name] = "invalid_chat_id"
             if not errors:

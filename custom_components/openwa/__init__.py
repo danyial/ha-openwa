@@ -33,7 +33,7 @@ from .const import (
     WEBHOOK_EVENTS,
 )
 from .coordinator import OpenWAConfigEntry, OpenWAData, OpenWASessionCoordinator
-from .helpers import signature_valid
+from .helpers import phone_chat_id, signature_valid
 from .services import async_setup_services
 
 _LOGGER = logging.getLogger(__name__)
@@ -221,6 +221,8 @@ async def _async_handle_webhook(
     }
     if isinstance(data, dict) and event and event.startswith("message."):
         event_data["from"] = data.get("from")
+        # Only set for @lid senders when OpenWA runs with RESOLVE_LID_TO_PHONE.
+        event_data["sender_phone"] = phone_chat_id(data.get("senderPhone"))
     hass.bus.async_fire(EVENT_OPENWA, event_data)
 
     if event in SESSION_EVENTS and isinstance(data, dict):
