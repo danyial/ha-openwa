@@ -31,6 +31,7 @@ from homeassistant.helpers.selector import (
 from .api import CannotConnect, InvalidAuth, OpenWAClient, OpenWAError
 from .const import (
     CONF_DEFAULT_CHAT_IDS,
+    CONF_INCLUDE_SENT,
     CONF_SCAN_INTERVAL,
     CONF_SESSIONS,
     CONF_WEBHOOK_ID,
@@ -268,6 +269,7 @@ class OpenWAOptionsFlow(OptionsFlow):
                     data={
                         CONF_DEFAULT_CHAT_IDS: chats,
                         CONF_SCAN_INTERVAL: user_input[CONF_SCAN_INTERVAL],
+                        CONF_INCLUDE_SENT: user_input[CONF_INCLUDE_SENT],
                     }
                 )
 
@@ -284,6 +286,12 @@ class OpenWAOptionsFlow(OptionsFlow):
                 ),
             )
         ] = vol.All(vol.Coerce(int), vol.Range(min=15, max=3600))
+        fields[
+            vol.Required(
+                CONF_INCLUDE_SENT,
+                default=self.config_entry.options.get(CONF_INCLUDE_SENT, False),
+            )
+        ] = bool
         return self.async_show_form(
             step_id="init", data_schema=vol.Schema(fields), errors=errors
         )

@@ -13,6 +13,7 @@ CONF_WEBHOOK_URL: Final = "webhook_url"
 CONF_WEBHOOK_SECRET: Final = "webhook_secret"
 CONF_DEFAULT_CHAT_IDS: Final = "default_chat_ids"
 CONF_SCAN_INTERVAL: Final = "scan_interval"
+CONF_INCLUDE_SENT: Final = "include_sent"
 
 DEFAULT_SCAN_INTERVAL: Final = timedelta(seconds=60)
 REQUEST_TIMEOUT: Final = 15
@@ -28,6 +29,17 @@ WEBHOOK_EVENTS: Final = [
     "session.authenticated",
     "session.disconnected",
 ]
+# Own messages (fromMe), opt-in: HA's own sends produce them too.
+EVENT_MESSAGE_SENT: Final = "message.sent"
+
+
+def webhook_events(include_sent: bool) -> list[str]:
+    """Events to subscribe, depending on the include_sent option."""
+    return (
+        [*WEBHOOK_EVENTS, EVENT_MESSAGE_SENT] if include_sent else list(WEBHOOK_EVENTS)
+    )
+
+
 SESSION_EVENTS: Final = frozenset(
     {"session.status", "session.qr", "session.authenticated", "session.disconnected"}
 )

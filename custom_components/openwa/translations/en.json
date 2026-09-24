@@ -55,7 +55,11 @@
         "title": "OpenWA options",
         "description": "Default chat per session for the notify entity: a phone number (+49 151 …, or 0151 … using the Home Assistant country) or a chat id like 49151…@c.us / …@g.us.",
         "data": {
-          "scan_interval": "Polling interval (seconds)"
+          "scan_interval": "Polling interval (seconds)",
+          "include_sent": "Own messages as events"
+        },
+        "data_description": {
+          "include_sent": "Also fire openwa_event for messages sent from this WhatsApp account (message.sent), including messages Home Assistant sends itself. Beware of automation loops."
         }
       }
     },
@@ -65,7 +69,8 @@
   },
   "device_automation": {
     "trigger_type": {
-      "message_received": "Message received"
+      "message_received": "Message received",
+      "message_sent": "Message sent"
     },
     "extra_fields": {
       "from": "From (phone number or chat id, optional; also matches resolved @lid senders)"

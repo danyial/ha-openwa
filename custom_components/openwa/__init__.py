@@ -20,6 +20,7 @@ from homeassistant.util.json import json_loads
 
 from .api import CannotConnect, InvalidAuth, OpenWAClient, OpenWAError
 from .const import (
+    CONF_INCLUDE_SENT,
     CONF_SCAN_INTERVAL,
     CONF_SESSIONS,
     CONF_WEBHOOK_ID,
@@ -30,7 +31,7 @@ from .const import (
     EVENT_OPENWA,
     SESSION_EVENTS,
     SUPPORTED_VERSION_PREFIX,
-    WEBHOOK_EVENTS,
+    webhook_events,
 )
 from .coordinator import OpenWAConfigEntry, OpenWAData, OpenWASessionCoordinator
 from .helpers import phone_chat_id, signature_valid
@@ -149,17 +150,16 @@ async def _async_reconcile_webhooks(entry: OpenWAConfigEntry) -> None:
     client = entry.runtime_data.client
     target = _target_url(entry)
     secret = entry.data[CONF_WEBHOOK_SECRET]
+    events = webhook_events(entry.options.get(CONF_INCLUDE_SENT, False))
     for sid in entry.runtime_data.coordinators:
         try:
             ours = [h for h in await client.list_webhooks(sid) if _is_ours(entry, h)]
             if not ours:
                 _LOGGER.info("Re-creating OpenWA webhook for session %s", sid)
-                await client.create_webhook(sid, target, WEBHOOK_EVENTS, secret)
+                await client.create_webhook(sid, target, events, secret)
                 continue
             # PUT is idempotent and re-syncs the write-only secret.
-            await client.update_webhook(
-                sid, ours[0]["id"], target, WEBHOOK_EVENTS, secret
-            )
+            await client.update_webhook(sid, ours[0]["id"], target, events, secret)
             for extra in ours[1:]:
                 await client.delete_webhook(sid, extra["id"])
         except InvalidAuth as err:
