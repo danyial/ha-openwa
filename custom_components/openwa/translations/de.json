@@ -88,7 +88,8 @@
           "ready": "Bereit",
           "disconnected": "Getrennt",
           "action_required": "Aktion nötig",
-          "failed": "Fehlgeschlagen"
+          "failed": "Fehlgeschlagen",
+          "unresponsive": "Engine reagiert nicht"
         }
       }
     },

@@ -12,14 +12,16 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import InvalidAuth, OpenWAClient, OpenWAError
-from .const import DOMAIN, STATUS_QR_READY
+from .api import CannotConnect, InvalidAuth, OpenWAClient, OpenWAError
+from .const import DOMAIN, ENGINE_PROBE_FAILURES, STATUS_QR_READY, STATUS_READY
 from .helpers import Deduplicator
 
 _LOGGER = logging.getLogger(__name__)
 
-# Key in coordinator data holding the current QR data URL (not part of the API).
+# Keys in coordinator data that are not part of the API response.
 QR_KEY = "qr"
+# True/False while the session is ready, None otherwise (not probed).
+ENGINE_RESPONSIVE_KEY = "engine_responsive"
 
 
 @dataclass
@@ -62,6 +64,7 @@ class OpenWASessionCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.session_name = session_name
         # LID -> phone digits (or None); stable, so resolved once per LID.
         self._lid_phones: dict[str, str | None] = {}
+        self._probe_failures = 0
 
     async def _async_update_data(self) -> dict[str, Any]:
         try:
@@ -73,7 +76,44 @@ class OpenWASessionCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise ConfigEntryAuthFailed(str(err)) from err
         except OpenWAError as err:
             raise UpdateFailed(str(err)) from err
-        return {**data, QR_KEY: qr}
+        return {**data, QR_KEY: qr, ENGINE_RESPONSIVE_KEY: await self._probe(data)}
+
+    async def _probe(self, data: dict[str, Any]) -> bool | None:
+        """Check that a "ready" engine still answers.
+
+        OpenWA keeps reporting "ready" while a wedged engine lets every engine
+        call hang. One slow answer is not enough to call it hung: only
+        ENGINE_PROBE_FAILURES timeouts in a row are.
+        """
+        if data.get("status") != STATUS_READY:
+            self._probe_failures = 0
+            return None
+        try:
+            await self.client.probe_engine(self.session_id)
+        except CannotConnect as err:
+            self._probe_failures += 1
+            _LOGGER.debug(
+                "Engine probe for %s failed (%s in a row): %s",
+                self.session_name,
+                self._probe_failures,
+                err,
+            )
+        except OpenWAError:
+            # The engine answered, just not with 2xx.
+            self._probe_failures = 0
+        else:
+            self._probe_failures = 0
+        responsive = self._probe_failures < ENGINE_PROBE_FAILURES
+        was_responsive = (self.data or {}).get(ENGINE_RESPONSIVE_KEY)
+        if not responsive and was_responsive is not False:
+            _LOGGER.warning(
+                "OpenWA reports session %s as ready, but its engine does not "
+                "answer; restart the session in OpenWA",
+                self.session_name,
+            )
+        elif responsive and was_responsive is False:
+            _LOGGER.info("Engine of session %s answers again", self.session_name)
+        return responsive
 
     async def async_is_to_self(self, data: dict[str, Any]) -> bool:
         """Return True for an own message written into the chat with yourself.

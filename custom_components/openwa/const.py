@@ -50,6 +50,11 @@ SESSION_EVENTS: Final = frozenset(
 )
 
 STATUS_READY: Final = "ready"
+# Not an OpenWA status: reported by the integration when OpenWA says "ready"
+# but the engine stopped answering.
+STATUS_UNRESPONSIVE: Final = "unresponsive"
+# Consecutive failed engine probes before a ready session counts as hung.
+ENGINE_PROBE_FAILURES: Final = 2
 STATUS_QR_READY: Final = "qr_ready"
 SESSION_STATUSES: Final = [
     "created",

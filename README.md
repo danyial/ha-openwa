@@ -14,13 +14,15 @@ Per OpenWA session (one device each):
 
 | Entity | Description |
 |---|---|
-| `sensor.<session>_status` | `created`, `initializing`, `qr_ready`, `authenticating`, `ready`, `disconnected`, `action_required`, `failed`. Attributes: `phone`, `pushName`, `connectedAt`, `lastError`, `engineLoaded` |
-| `binary_sensor.<session>_connected` | on while status is `ready` |
+| `sensor.<session>_status` | `created`, `initializing`, `qr_ready`, `authenticating`, `ready`, `disconnected`, `action_required`, `failed`, plus `unresponsive` (see below). Attributes: `phone`, `pushName`, `connectedAt`, `lastError`, `engineLoaded`, `engine_responsive` |
+| `binary_sensor.<session>_connected` | on while status is `ready` and the engine answers |
 | `image.<session>_pairing_qr_code` | pairing QR, available only while status is `qr_ready` |
 | `button.<session>_start` / `_stop` / `_log_out` | session lifecycle |
 | `notify.<session>` | sends to the session's default chat (set in the options) |
 
 Status changes arrive by webhook push. Polling every 60 s (configurable) is the fallback.
+
+**Hung engine:** OpenWA can keep reporting `ready` while its WhatsApp engine no longer answers; messages then stop arriving without any error. While a session is `ready`, each poll also lists the session's chats (served from the engine's local store, no traffic to WhatsApp's servers). After two polls in a row without an answer within 15 s the status sensor shows `unresponsive`, `connected` turns off and a warning is logged. Restart the session in OpenWA (the integration's *Stop*/*Start* buttons, or the OpenWA dashboard); the status returns to `ready` on the next successful poll.
 
 ## Server preparation
 
