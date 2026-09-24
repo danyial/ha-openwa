@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+.ruff_cache/
+.pytest_cache/
+
+# Local planning notes, not published
+tasks/

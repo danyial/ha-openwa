@@ -1,0 +1,48 @@
+stages:
+  - lint
+  - test
+  - validate
+
+default:
+  tags:
+    - docker
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+.python:
+  image: python:3.14-slim
+  cache:
+    key: pip-$CI_JOB_NAME
+    paths:
+      - .cache/pip
+
+ruff:
+  extends: .python
+  stage: lint
+  script:
+    - pip install -q ruff
+    - ruff check .
+    - ruff format --check .
+
+pytest:
+  extends: .python
+  stage: test
+  script:
+    - pip install -q -r requirements_test.txt
+    - pytest -q -p no:cacheprovider
+
+hassfest:
+  stage: validate
+  image:
+    name: ghcr.io/home-assistant/hassfest
+    entrypoint: [""]
+  script:
+    # The image's entrypoint discovers custom_components/ relative to cwd.
+    - cd "$CI_PROJECT_DIR" && /usr/src/homeassistant/script/hassfest/docker/entrypoint.sh
+
+hacs:
+  extends: .python
+  stage: validate
+  script:
+    - python scripts/check_hacs.py

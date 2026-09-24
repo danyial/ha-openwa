@@ -1,0 +1,180 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect OpenWA",
+        "description": "Use an OPERATOR API key restricted to the sessions Home Assistant may use (allowedSessions), not the admin key.",
+        "data": {
+          "url": "Server URL",
+          "api_key": "API key"
+        },
+        "data_description": {
+          "url": "For example http://192.168.1.10:2785",
+          "api_key": "Sent as X-API-Key header"
+        }
+      },
+      "sessions": {
+        "title": "Choose sessions",
+        "description": "Each session becomes a device.",
+        "data": {
+          "sessions": "Sessions"
+        }
+      },
+      "webhook": {
+        "title": "Incoming events",
+        "description": "OpenWA will POST events to this Home Assistant URL. A test delivery is sent before the entry is created.{error}",
+        "data": {
+          "webhook_url": "Home Assistant base URL"
+        },
+        "data_description": {
+          "webhook_url": "Must be reachable from the OpenWA server. For private addresses the server needs SSRF_ALLOWED_HOSTS set to exactly this host name."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-enter API key",
+        "data": {
+          "api_key": "API key"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "API key was rejected.",
+      "cannot_connect": "Cannot reach the OpenWA server.",
+      "no_sessions": "This key cannot see any session. Check allowedSessions or create a session in OpenWA first.",
+      "webhook_test_failed": "OpenWA could not deliver the test event. If Home Assistant runs on a private address, set SSRF_ALLOWED_HOSTS on the OpenWA server to this host name.",
+      "unknown": "Unexpected error, see the log."
+    },
+    "abort": {
+      "already_configured": "This OpenWA server is already configured.",
+      "reauth_successful": "API key updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "OpenWA options",
+        "description": "Default chat per session for the notify entity: phone number with country code (+49 151 …) or a chat id like 49151…@c.us / …@g.us.",
+        "data": {
+          "scan_interval": "Polling interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "invalid_chat_id": "Not a phone number or chat id."
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "message_received": "Message received"
+    },
+    "extra_fields": {
+      "from": "From (phone number or chat id, optional)"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status",
+        "state": {
+          "created": "Created",
+          "initializing": "Initializing",
+          "qr_ready": "Waiting for QR scan",
+          "authenticating": "Authenticating",
+          "ready": "Ready",
+          "disconnected": "Disconnected",
+          "action_required": "Action required",
+          "failed": "Failed"
+        }
+      }
+    },
+    "binary_sensor": {
+      "connected": {
+        "name": "Connected"
+      }
+    },
+    "image": {
+      "qr": {
+        "name": "Pairing QR code"
+      }
+    },
+    "button": {
+      "start": {
+        "name": "Start"
+      },
+      "stop": {
+        "name": "Stop"
+      },
+      "logout": {
+        "name": "Log out"
+      }
+    }
+  },
+  "selector": {
+    "kind": {
+      "options": {
+        "image": "Image",
+        "video": "Video",
+        "audio": "Audio",
+        "document": "Document"
+      }
+    }
+  },
+  "services": {
+    "send_message": {
+      "name": "Send message",
+      "description": "Send a WhatsApp text message.",
+      "fields": {
+        "session": {
+          "name": "Session",
+          "description": "Session name or id."
+        },
+        "chat_id": {
+          "name": "Chat",
+          "description": "Phone number with country code or chat id (…@c.us, …@g.us)."
+        },
+        "text": {
+          "name": "Text",
+          "description": "Message text."
+        },
+        "quoted_message_id": {
+          "name": "Reply to",
+          "description": "Id of a message to quote."
+        }
+      }
+    },
+    "send_media": {
+      "name": "Send media",
+      "description": "Send an image, video, audio file or document by URL or local path.",
+      "fields": {
+        "session": {
+          "name": "Session",
+          "description": "Session name or id."
+        },
+        "chat_id": {
+          "name": "Chat",
+          "description": "Phone number with country code or chat id (…@c.us, …@g.us)."
+        },
+        "url": {
+          "name": "URL",
+          "description": "Public URL OpenWA downloads the file from. Use either URL or path."
+        },
+        "path": {
+          "name": "Path",
+          "description": "Local file, must be inside allowlist_external_dirs. Max 18 MB."
+        },
+        "caption": {
+          "name": "Caption",
+          "description": "Text shown with the media."
+        },
+        "kind": {
+          "name": "Kind",
+          "description": "Defaults to the file's MIME type."
+        },
+        "filename": {
+          "name": "File name",
+          "description": "Shown for documents."
+        }
+      }
+    }
+  }
+}

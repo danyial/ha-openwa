@@ -1,0 +1,180 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "OpenWA verbinden",
+        "description": "Einen OPERATOR-API-Key verwenden, der auf die Sessions für Home Assistant beschränkt ist (allowedSessions), nicht den Admin-Key.",
+        "data": {
+          "url": "Server-URL",
+          "api_key": "API-Key"
+        },
+        "data_description": {
+          "url": "Zum Beispiel http://192.168.1.10:2785",
+          "api_key": "Wird als X-API-Key-Header gesendet"
+        }
+      },
+      "sessions": {
+        "title": "Sessions auswählen",
+        "description": "Jede Session wird ein Gerät.",
+        "data": {
+          "sessions": "Sessions"
+        }
+      },
+      "webhook": {
+        "title": "Eingehende Events",
+        "description": "OpenWA schickt Events per POST an diese Home-Assistant-URL. Vor dem Anlegen wird eine Test-Zustellung ausgeführt.{error}",
+        "data": {
+          "webhook_url": "Home-Assistant-Basis-URL"
+        },
+        "data_description": {
+          "webhook_url": "Muss vom OpenWA-Server erreichbar sein. Bei privaten Adressen braucht der Server SSRF_ALLOWED_HOSTS mit genau diesem Hostnamen."
+        }
+      },
+      "reauth_confirm": {
+        "title": "API-Key neu eingeben",
+        "data": {
+          "api_key": "API-Key"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "API-Key abgelehnt.",
+      "cannot_connect": "OpenWA-Server nicht erreichbar.",
+      "no_sessions": "Dieser Key sieht keine Session. allowedSessions prüfen oder in OpenWA zuerst eine Session anlegen.",
+      "webhook_test_failed": "OpenWA konnte das Test-Event nicht zustellen. Läuft Home Assistant unter einer privaten Adresse, auf dem OpenWA-Server SSRF_ALLOWED_HOSTS auf diesen Hostnamen setzen.",
+      "unknown": "Unerwarteter Fehler, siehe Log."
+    },
+    "abort": {
+      "already_configured": "Dieser OpenWA-Server ist bereits eingerichtet.",
+      "reauth_successful": "API-Key aktualisiert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "OpenWA-Optionen",
+        "description": "Standard-Chat je Session für die Notify-Entity: Telefonnummer mit Ländervorwahl (+49 151 …) oder Chat-ID wie 49151…@c.us / …@g.us.",
+        "data": {
+          "scan_interval": "Abfrageintervall (Sekunden)"
+        }
+      }
+    },
+    "error": {
+      "invalid_chat_id": "Keine gültige Telefonnummer oder Chat-ID."
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "message_received": "Nachricht empfangen"
+    },
+    "extra_fields": {
+      "from": "Von (Telefonnummer oder Chat-ID, optional)"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status",
+        "state": {
+          "created": "Angelegt",
+          "initializing": "Startet",
+          "qr_ready": "Wartet auf QR-Scan",
+          "authenticating": "Authentifiziert",
+          "ready": "Bereit",
+          "disconnected": "Getrennt",
+          "action_required": "Aktion nötig",
+          "failed": "Fehlgeschlagen"
+        }
+      }
+    },
+    "binary_sensor": {
+      "connected": {
+        "name": "Verbunden"
+      }
+    },
+    "image": {
+      "qr": {
+        "name": "Pairing-QR-Code"
+      }
+    },
+    "button": {
+      "start": {
+        "name": "Starten"
+      },
+      "stop": {
+        "name": "Stoppen"
+      },
+      "logout": {
+        "name": "Abmelden"
+      }
+    }
+  },
+  "selector": {
+    "kind": {
+      "options": {
+        "image": "Bild",
+        "video": "Video",
+        "audio": "Audio",
+        "document": "Dokument"
+      }
+    }
+  },
+  "services": {
+    "send_message": {
+      "name": "Nachricht senden",
+      "description": "WhatsApp-Textnachricht senden.",
+      "fields": {
+        "session": {
+          "name": "Session",
+          "description": "Session-Name oder -ID."
+        },
+        "chat_id": {
+          "name": "Chat",
+          "description": "Telefonnummer mit Ländervorwahl oder Chat-ID (…@c.us, …@g.us)."
+        },
+        "text": {
+          "name": "Text",
+          "description": "Nachrichtentext."
+        },
+        "quoted_message_id": {
+          "name": "Antwort auf",
+          "description": "ID einer Nachricht, die zitiert wird."
+        }
+      }
+    },
+    "send_media": {
+      "name": "Medien senden",
+      "description": "Bild, Video, Audio oder Dokument per URL oder lokalem Pfad senden.",
+      "fields": {
+        "session": {
+          "name": "Session",
+          "description": "Session-Name oder -ID."
+        },
+        "chat_id": {
+          "name": "Chat",
+          "description": "Telefonnummer mit Ländervorwahl oder Chat-ID (…@c.us, …@g.us)."
+        },
+        "url": {
+          "name": "URL",
+          "description": "Öffentliche URL, von der OpenWA die Datei lädt. Entweder URL oder Pfad."
+        },
+        "path": {
+          "name": "Pfad",
+          "description": "Lokale Datei, muss in allowlist_external_dirs liegen. Max. 18 MB."
+        },
+        "caption": {
+          "name": "Beschriftung",
+          "description": "Text zum Medium."
+        },
+        "kind": {
+          "name": "Art",
+          "description": "Standard: aus dem MIME-Typ der Datei."
+        },
+        "filename": {
+          "name": "Dateiname",
+          "description": "Wird bei Dokumenten angezeigt."
+        }
+      }
+    }
+  }
+}
