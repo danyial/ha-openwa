@@ -101,6 +101,18 @@ data: { … }                      # OpenWA payload: id, from, to, body, type, i
 
 Subscribed events: `message.received`, `message.ack`, `session.status`, `session.qr`, `session.authenticated`, `session.disconnected`.
 
+**Own messages (`message.sent`), opt-in:** a message written *from* the session's WhatsApp account — on the phone, in WhatsApp Web, or to yourself — never arrives as `message.received`. The option *Own messages as events* controls them:
+
+| Setting | `message.sent` events |
+|---|---|
+| Off (default) | none |
+| Notes to myself only | only messages written into the chat with yourself ("Message yourself"). Useful as a command channel to Home Assistant. |
+| All own messages | every message sent from the account, **including those Home Assistant sends** through `notify` or `openwa.send_*` |
+
+Every `message.*` event carries `to_self: true/false`. The chat with yourself is `<own number>@c.us` or, with WhatsApp's linked IDs, the account's own `…@lid`; a LID is resolved once through OpenWA and compared with the session's phone number. The device trigger **Message sent** is offered while the option is not *Off*.
+
+With *All own messages*, an automation that reacts to `message.sent` by sending a message triggers itself. Filter on `to_self` or guard the automation otherwise.
+
 WhatsApp increasingly hides senders behind a *linked ID*: `from` is then `…@lid` instead of the phone number. OpenWA resolves it only when the server runs with `RESOLVE_LID_TO_PHONE=true`; the number then arrives as `sender_phone`. To match a specific person, check both fields, as in the example below.
 
 For automations built in the UI there is a device trigger **Message received** with an optional sender filter. It matches `from` or `sender_phone`, so resolved `@lid` senders are found by their phone number.

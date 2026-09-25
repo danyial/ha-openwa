@@ -23,6 +23,7 @@ from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
+    SelectSelectorMode,
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
@@ -31,6 +32,7 @@ from homeassistant.helpers.selector import (
 from .api import CannotConnect, InvalidAuth, OpenWAClient, OpenWAError
 from .const import (
     CONF_DEFAULT_CHAT_IDS,
+    CONF_OWN_MESSAGES,
     CONF_SCAN_INTERVAL,
     CONF_SESSIONS,
     CONF_WEBHOOK_ID,
@@ -38,6 +40,8 @@ from .const import (
     CONF_WEBHOOK_URL,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    OWN_MESSAGE_MODES,
+    OWN_MESSAGES_OFF,
     WEBHOOK_EVENTS,
 )
 from .helpers import normalize_chat_id
@@ -268,6 +272,7 @@ class OpenWAOptionsFlow(OptionsFlow):
                     data={
                         CONF_DEFAULT_CHAT_IDS: chats,
                         CONF_SCAN_INTERVAL: user_input[CONF_SCAN_INTERVAL],
+                        CONF_OWN_MESSAGES: user_input[CONF_OWN_MESSAGES],
                     }
                 )
 
@@ -284,6 +289,20 @@ class OpenWAOptionsFlow(OptionsFlow):
                 ),
             )
         ] = vol.All(vol.Coerce(int), vol.Range(min=15, max=3600))
+        fields[
+            vol.Required(
+                CONF_OWN_MESSAGES,
+                default=self.config_entry.options.get(
+                    CONF_OWN_MESSAGES, OWN_MESSAGES_OFF
+                ),
+            )
+        ] = SelectSelector(
+            SelectSelectorConfig(
+                options=OWN_MESSAGE_MODES,
+                translation_key=CONF_OWN_MESSAGES,
+                mode=SelectSelectorMode.LIST,
+            )
+        )
         return self.async_show_form(
             step_id="init", data_schema=vol.Schema(fields), errors=errors
         )
