@@ -53,18 +53,21 @@
     "step": {
       "init": {
         "title": "OpenWA-Optionen",
-        "description": "Standard-Chat je Session für die Notify-Entity: Telefonnummer (+49 151 … oder 0151 … mit dem in Home Assistant eingestellten Land) oder Chat-ID wie 49151…@c.us / …@g.us.",
+        "description": "Die Session sendet, der Standard-Chat empfängt die notify-Nachrichten.",
         "data": {
           "scan_interval": "Abfrageintervall (Sekunden)",
-          "own_messages": "Eigene Nachrichten als Event"
+          "own_messages": "Eigene Nachrichten als Event",
+          "default_chat": "Standard-Chat (Empfänger für notify)"
         },
         "data_description": {
-          "own_messages": "Nachrichten, die von diesem WhatsApp-Konto gesendet werden, kommen als openwa_event mit event_type message.sent. „Nur Notizen an mich“ lässt nur Nachrichten in den Chat mit dir selbst durch – ein Kommando-Kanal an Home Assistant. „Alle eigenen Nachrichten“ enthält auch alles, was Home Assistant selbst sendet; Vorsicht vor Automations-Schleifen."
+          "own_messages": "Nachrichten, die von diesem WhatsApp-Konto gesendet werden, kommen als openwa_event mit event_type message.sent. „Nur Notizen an mich“ lässt nur Nachrichten in den Chat mit dir selbst durch – ein Kommando-Kanal an Home Assistant. „Alle eigenen Nachrichten“ enthält auch alles, was Home Assistant selbst sendet; Vorsicht vor Automations-Schleifen.",
+          "default_chat": "Wer die Nachrichten der Notify-Entity bekommt: Telefonnummer (+49 151 … oder 0151 … mit dem in Home Assistant eingestellten Land) oder Chat-ID (…@c.us, Gruppe …@g.us). Ein anderes WhatsApp-Konto als die Session selbst – Nachrichten an die eigene Nummer lösen auf dem Handy keine Benachrichtigung aus."
         }
       }
     },
     "error": {
-      "invalid_chat_id": "Keine gültige Telefonnummer oder Chat-ID."
+      "invalid_chat_id": "Keine gültige Telefonnummer oder Chat-ID.",
+      "own_number": "Das ist die Nummer der Session selbst. Nachrichten dorthin landen im Chat mit dir selbst und benachrichtigen dich nicht; trag das Konto ein, das die Meldungen von Home Assistant bekommen soll."
     }
   },
   "device_automation": {

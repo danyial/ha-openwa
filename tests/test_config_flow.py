@@ -183,7 +183,7 @@ async def test_options_normalize_chat(
 ) -> None:
     result = await hass.config_entries.options.async_init(setup_entry.entry_id)
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {SESSION_NAME: "+49 151 000-00002", CONF_SCAN_INTERVAL: 30}
+        result["flow_id"], {"default_chat": "+49 151 000-00002", CONF_SCAN_INTERVAL: 30}
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert setup_entry.options[CONF_DEFAULT_CHAT_IDS] == {
@@ -196,9 +196,9 @@ async def test_options_reject_bad_chat(
 ) -> None:
     result = await hass.config_entries.options.async_init(setup_entry.entry_id)
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {SESSION_NAME: "nope", CONF_SCAN_INTERVAL: 60}
+        result["flow_id"], {"default_chat": "nope", CONF_SCAN_INTERVAL: 60}
     )
-    assert result["errors"] == {SESSION_NAME: "invalid_chat_id"}
+    assert result["errors"] == {"default_chat": "invalid_chat_id"}
 
 
 async def test_options_national_number_uses_country(
@@ -207,7 +207,7 @@ async def test_options_national_number_uses_country(
     hass.config.country = "DE"
     result = await hass.config_entries.options.async_init(setup_entry.entry_id)
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {SESSION_NAME: "0151 00000002", CONF_SCAN_INTERVAL: 60}
+        result["flow_id"], {"default_chat": "0151 00000002", CONF_SCAN_INTERVAL: 60}
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert setup_entry.options[CONF_DEFAULT_CHAT_IDS] == {
@@ -224,3 +224,40 @@ async def test_options_own_messages_mode(
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert setup_entry.options["own_messages"] == "self"
+
+
+async def test_options_reject_own_number(
+    hass: HomeAssistant, setup_entry: MockConfigEntry
+) -> None:
+    # SESSION_READY's phone: sending notify there reaches nobody.
+    result = await hass.config_entries.options.async_init(setup_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"default_chat": "+49 151 00000000", CONF_SCAN_INTERVAL: 60}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"default_chat": "own_number"}
+
+
+async def test_options_several_sessions_keyed_by_name(hass: HomeAssistant) -> None:
+    second = "99999999-2222-4333-8444-555555555555"
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_URL: URL,
+            CONF_API_KEY: API_KEY,
+            CONF_SESSIONS: {SESSION_ID: SESSION_NAME, second: "office"},
+            "webhook_id": "x",
+            "webhook_secret": "s" * 64,
+            CONF_WEBHOOK_URL: HA_URL,
+        },
+    )
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    keys = {str(k) for k in result["data_schema"].schema}
+    assert {SESSION_NAME, "office"} <= keys
+    assert "default_chat" not in keys
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {"office": "+49 151 00000005", CONF_SCAN_INTERVAL: 60},
+    )
+    assert entry.options[CONF_DEFAULT_CHAT_IDS] == {second: "4915100000005@c.us"}

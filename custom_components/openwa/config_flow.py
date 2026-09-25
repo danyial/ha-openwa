@@ -11,6 +11,7 @@ import voluptuous as vol
 from homeassistant.components import webhook
 from homeassistant.config_entries import (
     ConfigEntry,
+    ConfigEntryState,
     ConfigFlow,
     ConfigFlowResult,
     OptionsFlow,
@@ -31,6 +32,7 @@ from homeassistant.helpers.selector import (
 
 from .api import CannotConnect, InvalidAuth, OpenWAClient, OpenWAError
 from .const import (
+    CONF_DEFAULT_CHAT,
     CONF_DEFAULT_CHAT_IDS,
     CONF_OWN_MESSAGES,
     CONF_SCAN_INTERVAL,
@@ -256,17 +258,28 @@ class OpenWAOptionsFlow(OptionsFlow):
         current: dict[str, str] = self.config_entry.options.get(
             CONF_DEFAULT_CHAT_IDS, {}
         )
+        # One session (the usual case) gets a translated label; with several,
+        # the session name is the only thing that tells the fields apart.
+        keys = {
+            sid: CONF_DEFAULT_CHAT if len(sessions) == 1 else name
+            for sid, name in sessions.items()
+        }
         errors: dict[str, str] = {}
         if user_input is not None:
             chats: dict[str, str] = {}
-            for sid, name in sessions.items():
-                raw = (user_input.get(name) or "").strip()
+            for sid, key in keys.items():
+                raw = (user_input.get(key) or "").strip()
                 if not raw:
                     continue
                 try:
-                    chats[sid] = normalize_chat_id(raw, self.hass.config.country)
+                    chat_id = normalize_chat_id(raw, self.hass.config.country)
                 except ValueError:
-                    errors[name] = "invalid_chat_id"
+                    errors[key] = "invalid_chat_id"
+                    continue
+                if chat_id == self._own_chat_id(sid):
+                    errors[key] = "own_number"
+                    continue
+                chats[sid] = chat_id
             if not errors:
                 return self.async_create_entry(
                     data={
@@ -277,9 +290,9 @@ class OpenWAOptionsFlow(OptionsFlow):
                 )
 
         fields: dict[Any, Any] = {}
-        for sid, name in sessions.items():
+        for sid, key in keys.items():
             fields[
-                vol.Optional(name, description={"suggested_value": current.get(sid)})
+                vol.Optional(key, description={"suggested_value": current.get(sid)})
             ] = str
         fields[
             vol.Required(
@@ -306,3 +319,12 @@ class OpenWAOptionsFlow(OptionsFlow):
         return self.async_show_form(
             step_id="init", data_schema=vol.Schema(fields), errors=errors
         )
+
+    def _own_chat_id(self, session_id: str) -> str | None:
+        """The session's own number: sending notify there reaches nobody."""
+        entry = self.config_entry
+        if entry.state is not ConfigEntryState.LOADED:
+            return None
+        coordinator = entry.runtime_data.coordinators.get(session_id)
+        phone = (coordinator.data or {}).get("phone") if coordinator else None
+        return f"{phone}@c.us" if phone else None

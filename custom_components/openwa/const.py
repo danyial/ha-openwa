@@ -12,6 +12,7 @@ CONF_WEBHOOK_ID: Final = "webhook_id"
 CONF_WEBHOOK_URL: Final = "webhook_url"
 CONF_WEBHOOK_SECRET: Final = "webhook_secret"
 CONF_DEFAULT_CHAT_IDS: Final = "default_chat_ids"
+CONF_DEFAULT_CHAT: Final = "default_chat"
 CONF_SCAN_INTERVAL: Final = "scan_interval"
 CONF_OWN_MESSAGES: Final = "own_messages"
 
