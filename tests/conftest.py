@@ -56,6 +56,8 @@ def mock_server(
     *,
     session: dict | None = None,
     webhooks: list | None = None,
+    chats_exc: Exception | None = None,
+    chats_status: int = 200,
 ) -> None:
     """Register the endpoints setup needs."""
     base = f"{URL}/api/sessions/{SESSION_ID}"
@@ -65,6 +67,7 @@ def mock_server(
     aioclient_mock.get(f"{URL}/api/health", json={"status": "ok", "version": "0.23.6"})
     aioclient_mock.get(base, json=session or SESSION_READY)
     aioclient_mock.get(f"{base}/webhooks", json=webhooks or [])
+    aioclient_mock.get(f"{base}/chats", json=[], exc=chats_exc, status=chats_status)
     aioclient_mock.post(f"{base}/webhooks", status=201, json={"id": WEBHOOK_ID})
     aioclient_mock.put(f"{base}/webhooks/{WEBHOOK_ID}", json={"id": WEBHOOK_ID})
     aioclient_mock.delete(f"{base}/webhooks/{WEBHOOK_ID}", status=204)

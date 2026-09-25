@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import STATUS_READY
-from .coordinator import OpenWAConfigEntry
+from .coordinator import ENGINE_RESPONSIVE_KEY, OpenWAConfigEntry
 from .entity import OpenWAEntity
 
 PARALLEL_UPDATES = 0
@@ -35,5 +35,8 @@ class OpenWAConnectedSensor(OpenWAEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool:
-        """Return True if WhatsApp is connected."""
-        return self.status == STATUS_READY
+        """Return True if WhatsApp is connected and the engine answers."""
+        return (
+            self.status == STATUS_READY
+            and (self.coordinator.data or {}).get(ENGINE_RESPONSIVE_KEY) is not False
+        )

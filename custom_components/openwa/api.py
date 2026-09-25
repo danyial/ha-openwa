@@ -166,6 +166,15 @@ class OpenWAClient:
         phone = data.get("phone") if isinstance(data, dict) else None
         return str(phone) if phone else None
 
+    async def probe_engine(self, session_id: str) -> None:
+        """Round-trip through the WhatsApp engine; raises CannotConnect if hung.
+
+        OpenWA has no ping endpoint. Listing chats is served from the
+        engine's local store, so unlike a number lookup it causes no traffic
+        to WhatsApp's servers, and it blocks when the engine is wedged.
+        """
+        await self._request("GET", f"/api/sessions/{session_id}/chats?limit=1")
+
     async def session_action(self, session_id: str, action: str) -> None:
         """Run a lifecycle action: start, stop or logout."""
         if action not in ("start", "stop", "logout"):
