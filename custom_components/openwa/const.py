@@ -13,7 +13,7 @@ CONF_WEBHOOK_URL: Final = "webhook_url"
 CONF_WEBHOOK_SECRET: Final = "webhook_secret"
 CONF_DEFAULT_CHAT_IDS: Final = "default_chat_ids"
 CONF_SCAN_INTERVAL: Final = "scan_interval"
-CONF_INCLUDE_SENT: Final = "include_sent"
+CONF_OWN_MESSAGES: Final = "own_messages"
 
 DEFAULT_SCAN_INTERVAL: Final = timedelta(seconds=60)
 REQUEST_TIMEOUT: Final = 15
@@ -29,15 +29,20 @@ WEBHOOK_EVENTS: Final = [
     "session.authenticated",
     "session.disconnected",
 ]
-# Own messages (fromMe), opt-in: HA's own sends produce them too.
+# Own messages (fromMe) arrive as message.sent. Opt-in, because Home
+# Assistant's own sends produce them too.
 EVENT_MESSAGE_SENT: Final = "message.sent"
+OWN_MESSAGES_OFF: Final = "off"
+OWN_MESSAGES_SELF: Final = "self"  # only notes to yourself
+OWN_MESSAGES_ALL: Final = "all"
+OWN_MESSAGE_MODES: Final = [OWN_MESSAGES_OFF, OWN_MESSAGES_SELF, OWN_MESSAGES_ALL]
 
 
-def webhook_events(include_sent: bool) -> list[str]:
-    """Events to subscribe, depending on the include_sent option."""
-    return (
-        [*WEBHOOK_EVENTS, EVENT_MESSAGE_SENT] if include_sent else list(WEBHOOK_EVENTS)
-    )
+def webhook_events(own_messages: str) -> list[str]:
+    """Events to subscribe, depending on the own_messages option."""
+    if own_messages == OWN_MESSAGES_OFF:
+        return list(WEBHOOK_EVENTS)
+    return [*WEBHOOK_EVENTS, EVENT_MESSAGE_SENT]
 
 
 SESSION_EVENTS: Final = frozenset(

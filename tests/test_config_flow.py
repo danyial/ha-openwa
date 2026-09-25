@@ -213,3 +213,14 @@ async def test_options_national_number_uses_country(
     assert setup_entry.options[CONF_DEFAULT_CHAT_IDS] == {
         SESSION_ID: "4915100000002@c.us"
     }
+
+
+async def test_options_own_messages_mode(
+    hass: HomeAssistant, setup_entry: MockConfigEntry
+) -> None:
+    result = await hass.config_entries.options.async_init(setup_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_SCAN_INTERVAL: 60, "own_messages": "self"}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert setup_entry.options["own_messages"] == "self"

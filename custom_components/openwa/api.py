@@ -156,6 +156,16 @@ class OpenWAClient:
             raise
         return data.get("qrCode") if isinstance(data, dict) else None
 
+    async def resolve_contact_phone(
+        self, session_id: str, contact_id: str
+    ) -> str | None:
+        """Return the phone digits behind a contact id such as '…@lid'."""
+        data = await self._request(
+            "GET", f"/api/sessions/{session_id}/contacts/{contact_id}/phone"
+        )
+        phone = data.get("phone") if isinstance(data, dict) else None
+        return str(phone) if phone else None
+
     async def session_action(self, session_id: str, action: str) -> None:
         """Run a lifecycle action: start, stop or logout."""
         if action not in ("start", "stop", "logout"):

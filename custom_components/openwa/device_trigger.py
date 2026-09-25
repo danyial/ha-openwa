@@ -12,7 +12,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.trigger import TriggerActionType, TriggerInfo
 from homeassistant.helpers.typing import ConfigType
 
-from .const import CONF_INCLUDE_SENT, DOMAIN, EVENT_OPENWA
+from .const import CONF_OWN_MESSAGES, DOMAIN, EVENT_OPENWA, OWN_MESSAGES_OFF
 from .helpers import normalize_chat_id
 
 TRIGGER_MESSAGE_RECEIVED = "message_received"
@@ -37,10 +37,11 @@ async def async_get_triggers(
 ) -> list[dict[str, str]]:
     """List triggers for an OpenWA session device.
 
-    "Message sent" is only offered when the entry subscribes to own messages.
+    "Message sent" is only offered while own messages are subscribed; in the
+    "self" mode it only fires for notes to yourself.
     """
     types = [TRIGGER_MESSAGE_RECEIVED]
-    if _include_sent(hass, device_id):
+    if _own_messages_enabled(hass, device_id):
         types.append(TRIGGER_MESSAGE_SENT)
     return [
         {
@@ -53,14 +54,14 @@ async def async_get_triggers(
     ]
 
 
-def _include_sent(hass: HomeAssistant, device_id: str) -> bool:
+def _own_messages_enabled(hass: HomeAssistant, device_id: str) -> bool:
     device = dr.async_get(hass).async_get(device_id)
     if device is None:
         return False
     return any(
         (entry := hass.config_entries.async_get_entry(entry_id)) is not None
         and entry.domain == DOMAIN
-        and entry.options.get(CONF_INCLUDE_SENT, False)
+        and entry.options.get(CONF_OWN_MESSAGES, OWN_MESSAGES_OFF) != OWN_MESSAGES_OFF
         for entry_id in device.config_entries
     )
 

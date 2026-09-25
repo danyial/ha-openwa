@@ -60,6 +60,8 @@ class OpenWASessionCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.client = client
         self.session_id = session_id
         self.session_name = session_name
+        # LID -> phone digits (or None); stable, so resolved once per LID.
+        self._lid_phones: dict[str, str | None] = {}
 
     async def _async_update_data(self) -> dict[str, Any]:
         try:
@@ -72,6 +74,35 @@ class OpenWASessionCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except OpenWAError as err:
             raise UpdateFailed(str(err)) from err
         return {**data, QR_KEY: qr}
+
+    async def async_is_to_self(self, data: dict[str, Any]) -> bool:
+        """Return True for an own message written into the chat with yourself.
+
+        The self chat is either '<own number>@c.us' or, with WhatsApp's
+        linked IDs, the account's own '…@lid' while `from` stays the number.
+        A LID is resolved through OpenWA and compared with the session phone.
+        """
+        to, sender = data.get("to"), data.get("from")
+        if not data.get("fromMe") or not isinstance(to, str):
+            return False
+        if to == sender:
+            return True
+        own = _digits((self.data or {}).get("phone"))
+        if not own:
+            return False
+        user, _, server = to.partition("@")
+        if server == "c.us":
+            return _digits(user) == own
+        if server != "lid":
+            return False
+        if to not in self._lid_phones:
+            try:
+                phone = await self.client.resolve_contact_phone(self.session_id, to)
+            except OpenWAError as err:
+                _LOGGER.debug("Could not resolve %s: %s", to, err)
+                return False
+            self._lid_phones[to] = _digits(phone)
+        return self._lid_phones[to] == own
 
     @callback
     def async_handle_event(self, event: str, data: dict[str, Any]) -> None:
@@ -101,3 +132,10 @@ class OpenWASessionCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # fields like connectedAt stay authoritative.
         if event != "session.qr":
             self.hass.async_create_task(self.async_request_refresh())
+
+
+def _digits(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    digits = "".join(ch for ch in value if ch.isdigit())
+    return digits or None

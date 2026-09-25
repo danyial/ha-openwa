@@ -20,7 +20,7 @@ from homeassistant.util.json import json_loads
 
 from .api import CannotConnect, InvalidAuth, OpenWAClient, OpenWAError
 from .const import (
-    CONF_INCLUDE_SENT,
+    CONF_OWN_MESSAGES,
     CONF_SCAN_INTERVAL,
     CONF_SESSIONS,
     CONF_WEBHOOK_ID,
@@ -28,7 +28,10 @@ from .const import (
     CONF_WEBHOOK_URL,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    EVENT_MESSAGE_SENT,
     EVENT_OPENWA,
+    OWN_MESSAGES_OFF,
+    OWN_MESSAGES_SELF,
     SESSION_EVENTS,
     SUPPORTED_VERSION_PREFIX,
     webhook_events,
@@ -150,7 +153,7 @@ async def _async_reconcile_webhooks(entry: OpenWAConfigEntry) -> None:
     client = entry.runtime_data.client
     target = _target_url(entry)
     secret = entry.data[CONF_WEBHOOK_SECRET]
-    events = webhook_events(entry.options.get(CONF_INCLUDE_SENT, False))
+    events = webhook_events(entry.options.get(CONF_OWN_MESSAGES, OWN_MESSAGES_OFF))
     for sid in entry.runtime_data.coordinators:
         try:
             ours = [h for h in await client.list_webhooks(sid) if _is_ours(entry, h)]
@@ -223,6 +226,13 @@ async def _async_handle_webhook(
         event_data["from"] = data.get("from")
         # Only set for @lid senders when OpenWA runs with RESOLVE_LID_TO_PHONE.
         event_data["sender_phone"] = phone_chat_id(data.get("senderPhone"))
+        event_data["to_self"] = await coordinator.async_is_to_self(data)
+        if (
+            event == EVENT_MESSAGE_SENT
+            and entry.options.get(CONF_OWN_MESSAGES) == OWN_MESSAGES_SELF
+            and not event_data["to_self"]
+        ):
+            return web.Response(status=HTTPStatus.OK)
     hass.bus.async_fire(EVENT_OPENWA, event_data)
 
     if event in SESSION_EVENTS and isinstance(data, dict):

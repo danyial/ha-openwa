@@ -497,7 +497,7 @@ async def test_service_national_number_without_country(
         )
 
 
-async def test_include_sent_option_resyncs_webhook_events(
+async def test_own_messages_option_resyncs_webhook_events(
     hass: HomeAssistant,
     setup_entry: MockConfigEntry,
     aioclient_mock: AiohttpClientMocker,
@@ -508,7 +508,7 @@ async def test_include_sent_option_resyncs_webhook_events(
         webhooks=[{"id": WEBHOOK_ID, "url": f"{HA_URL}/api/webhook/{HOOK_ID}"}],
     )
     hass.config_entries.async_update_entry(
-        setup_entry, options={**setup_entry.options, "include_sent": True}
+        setup_entry, options={**setup_entry.options, "own_messages": "all"}
     )
     await hass.async_block_till_done()
 
@@ -552,7 +552,7 @@ async def test_message_sent_trigger_offered_only_with_option(
     aioclient_mock.clear_requests()
     mock_server(aioclient_mock)
     hass.config_entries.async_update_entry(
-        setup_entry, options={**setup_entry.options, "include_sent": True}
+        setup_entry, options={**setup_entry.options, "own_messages": "all"}
     )
     await hass.async_block_till_done()
     types = {t["type"] for t in await async_get_triggers(hass, device.id)}
@@ -610,3 +610,117 @@ async def test_sender_filter_rejected_for_message_sent(
                 "from": "+49 151 1",
             },
         )
+
+
+OWN = "4915100000000"  # phone of SESSION_READY
+SELF_LID = "111111111111111@lid"
+OTHER_LID = "222222222222222@lid"
+
+
+async def _set_own_messages(
+    hass: HomeAssistant,
+    entry: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+    mode: str,
+) -> None:
+    aioclient_mock.clear_requests()
+    mock_server(aioclient_mock)
+    aioclient_mock.get(f"{BASE}/contacts/{SELF_LID}/phone", json={"phone": OWN})
+    aioclient_mock.get(
+        f"{BASE}/contacts/{OTHER_LID}/phone", json={"phone": "4915199999999"}
+    )
+    hass.config_entries.async_update_entry(
+        entry, options={**entry.options, "own_messages": mode}
+    )
+    await hass.async_block_till_done()
+
+
+def _sent(to: str, key: str) -> dict:
+    return _delivery(
+        "message.sent",
+        {"from": f"{OWN}@c.us", "to": to, "fromMe": True, "body": "b"},
+        key,
+    )
+
+
+@pytest.mark.parametrize(
+    ("to", "expected"),
+    [
+        (SELF_LID, True),  # self chat behind a LID (seen live)
+        (f"{OWN}@c.us", True),  # classic self chat
+        (OTHER_LID, False),
+        ("4915199999999@c.us", False),
+        ("120363000000000000@g.us", False),
+    ],
+)
+async def test_to_self_detection(
+    hass: HomeAssistant,
+    setup_entry: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+    hass_client_no_auth: ClientSessionGenerator,
+    to: str,
+    expected: bool,
+) -> None:
+    await _set_own_messages(hass, setup_entry, aioclient_mock, "all")
+    events = async_capture_events(hass, EVENT_OPENWA)
+    await _post(hass_client_no_auth, _sent(to, "k"))
+    await hass.async_block_till_done()
+    assert events[0].data["to_self"] is expected
+
+
+async def test_self_mode_drops_messages_to_others(
+    hass: HomeAssistant,
+    setup_entry: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+    hass_client_no_auth: ClientSessionGenerator,
+) -> None:
+    await _set_own_messages(hass, setup_entry, aioclient_mock, "self")
+    events = async_capture_events(hass, EVENT_OPENWA)
+    assert await _post(hass_client_no_auth, _sent(OTHER_LID, "o1")) == 200
+    assert await _post(hass_client_no_auth, _sent(SELF_LID, "s1")) == 200
+    await hass.async_block_till_done()
+    assert [e.data["to_self"] for e in events] == [True]
+
+
+async def test_lid_resolved_once(
+    hass: HomeAssistant,
+    setup_entry: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+    hass_client_no_auth: ClientSessionGenerator,
+) -> None:
+    await _set_own_messages(hass, setup_entry, aioclient_mock, "self")
+    await _post(hass_client_no_auth, _sent(SELF_LID, "c1"))
+    await _post(hass_client_no_auth, _sent(SELF_LID, "c2"))
+    await hass.async_block_till_done()
+    resolves = [c for c in aioclient_mock.mock_calls if c[1].path.endswith("/phone")]
+    assert len(resolves) == 1
+
+
+async def test_unresolvable_lid_is_not_self(
+    hass: HomeAssistant,
+    setup_entry: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+    hass_client_no_auth: ClientSessionGenerator,
+) -> None:
+    await _set_own_messages(hass, setup_entry, aioclient_mock, "all")
+    aioclient_mock.clear_requests()
+    mock_server(aioclient_mock)
+    aioclient_mock.get(f"{BASE}/contacts/{SELF_LID}/phone", exc=TimeoutError())
+    events = async_capture_events(hass, EVENT_OPENWA)
+    await _post(hass_client_no_auth, _sent(SELF_LID, "u1"))
+    await hass.async_block_till_done()
+    assert events[0].data["to_self"] is False
+
+
+async def test_received_message_is_not_self(
+    hass: HomeAssistant,
+    setup_entry: MockConfigEntry,
+    hass_client_no_auth: ClientSessionGenerator,
+) -> None:
+    events = async_capture_events(hass, EVENT_OPENWA)
+    await _post(
+        hass_client_no_auth,
+        _delivery("message.received", {"from": SELF_LID, "to": SELF_LID}, "r1"),
+    )
+    await hass.async_block_till_done()
+    assert events[0].data["to_self"] is False

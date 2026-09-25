@@ -56,10 +56,10 @@
         "description": "Default chat per session for the notify entity: a phone number (+49 151 …, or 0151 … using the Home Assistant country) or a chat id like 49151…@c.us / …@g.us.",
         "data": {
           "scan_interval": "Polling interval (seconds)",
-          "include_sent": "Own messages as events"
+          "own_messages": "Own messages as events"
         },
         "data_description": {
-          "include_sent": "Also fire openwa_event for messages sent from this WhatsApp account (message.sent), including messages Home Assistant sends itself. Beware of automation loops."
+          "own_messages": "Messages sent from this WhatsApp account arrive as openwa_event with event_type message.sent. 'Notes to myself' only passes messages written into the chat with yourself — a command channel to Home Assistant. 'All own messages' also includes everything Home Assistant sends itself; beware of automation loops."
         }
       }
     },
@@ -121,6 +121,13 @@
         "video": "Video",
         "audio": "Audio",
         "document": "Document"
+      }
+    },
+    "own_messages": {
+      "options": {
+        "off": "Off",
+        "self": "Notes to myself only",
+        "all": "All own messages"
       }
     }
   },
